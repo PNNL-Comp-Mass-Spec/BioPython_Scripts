@@ -1,0 +1,185 @@
+This page describes how to use BioPython to convert a GenBank .GBK file or a FASTA file of DNA codons into an amino acid based FASTA file that would be usable for MS/MS spectrum ID (using Sequest, X!Tandem, Inspect, etc.). 
+
+== Install Python and BioPython  ==
+
+*Download and install Python 2.7 
+**http://www.python.org/ (choose the Windows X86-64 MSI Installer) 
+*Download and install Numpy 1.6 
+**http://sourceforge.net/projects/numpy/files/NumPy/1.6.0/ 
+***Choose numpy-1.6.0-win32-superpack-python2.7.exe 
+**(official site is http://numpy.scipy.org/ ) 
+*Download and install Biopython 
+**http://biopython.org/wiki/Download 
+***Choose biopython-1.57.win32-py2.7.exe for Python 2.7
+
+== Obtain the .GBK file or FASTA file  ==
+
+The following are useful sources for obtaining sequence files 
+
+*Uniprot knowledgebase 
+**ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/ 
+**For example, file uniprot_sprot_human.dat.gz 
+**Use the Uniprot_DAT_File_Parser to create a .Fasta file from the .dat file: 
+***UniprotDATFileParser uniprot_sprot_human.dat /f 
+**Note that previous releases are available at ftp://ftp.ebi.ac.uk/pub/databases/uniprot/previous_releases/ 
+*JGI 
+**Use the Integrated Microbial Genomes (IMG) at http://img.jgi.doe.gov/cgi-bin/w/main.cgi 
+***Click the desired species type at the left (e.g. "Bacteria") 
+***Next find the desired organism by expanding the navigation tree 
+***Click the organism name to see the Organism Details 
+***Finally, click "FASTA amino acid file for all proteins" under "Export Genome Data" 
+*JCVI 
+**http://www.jcvi.org/ 
+**A useful trick is to perform a Google search for "TIGR GenomeName" where GenomeName is the name of the genome you're searching for 
+**Exampled download page is http://www.jcvi.org/cgi-bin/medicago/download.cgi 
+***On this page, you should download file Mt3.5v3_annotation_files.tar.gz since it has "Annotation Fasta files", in particular file Mt3.5_GenesProteinSeq_20100825.fa 
+*NCBI GenBank 
+**ftp://ftp.ncbi.nih.gov/genbank/ 
+**Example: CP001287.gbk at ftp://ftp.ncbi.nih.gov/genbank/genomes/Bacteria/Cyanothece_PCC_8801_uid20503/ 
+**Note that the CP001287.faa file actually contains the proteins and amino acid sequences, so if you download that file, then no conversion is necessary 
+*NCBI RefSeq 
+**ftp://ftp.ncbi.nih.gov/refseq/ 
+**Example: cow.protein.faa.gz at ftp://ftp.ncbi.nih.gov/refseq/B_taurus/mRNA_Prot 
+*Sanger 
+**ftp://ftp.sanger.ac.uk/pub/ 
+**Example: LinJwholegenome_20080508.v3.0a.pep at ftp://ftp.sanger.ac.uk/pub/pathogens/L_infantum/DATASETS/ 
+*IPI 
+**Note that Uniprot is better than IPI since IPI annotations are not as well annotated, which leads to numerous redundant or nearly-identical proteins and thus bloated .Fasta files 
+**Current versions: ftp://ftp.ebi.ac.uk/pub/databases/IPI/current/ 
+***For example, ipi.HUMAN.fasta.gz 
+**Old versions: ftp://ftp.ebi.ac.uk/pub/databases/IPI/old/HUMAN/
+
+== Converting a Genbank .GBK file  ==
+
+To convert a .GBK file to protein amino-acid .Fasta, enter the following into a text editor and save as ConvertFasta.py To run the python script, you can: 
+
+*Simple double click it, which should run it with Python 
+*Or use the command prompt 
+**Start the command prompt 
+**CD to the folder with the .PY file 
+**Run it using "python ConvertGBK.py"
+<pre>from Bio import SeqIO
+gbk_filename = "SourceFile.gbk"
+faa_filename = "SourceFile_converted.fasta"
+input_handle  = open(gbk_filename, "r")
+output_handle = open(faa_filename, "w")
+
+i = 0
+for seq_record in SeqIO.parse(input_handle, "genbank")&nbsp;:
+    print "Dealing with GenBank record&nbsp;%s"&nbsp;% seq_record.id
+    for seq_feature in seq_record.features&nbsp;:
+        if seq_feature.type=="CDS"&nbsp;:
+            i = i + 1
+            if i&nbsp;% 100 == 0&nbsp;:
+                print "CDS entry&nbsp;%d:&nbsp;%s from&nbsp;%s"&nbsp;% (i, seq_feature.qualifiers['locus_tag'][0], seq_record.name)
+
+            assert len(seq_feature.qualifiers['translation'])==1
+            output_handle.write("&gt;%s&nbsp;%s [%s]\n%s\n"&nbsp;% (
+                   seq_feature.qualifiers['locus_tag'][0],
+                   seq_feature.qualifiers['product'][0],
+                   seq_record.name,
+                   seq_feature.qualifiers['translation'][0]))
+
+output_handle.close()
+input_handle.close()</pre> 
+== Converting a DNA-based .Fasta file  ==
+
+To convert a DNA-based .fasta file to protein amino-acid .Fasta, enter the following into a text editor and save as ConvertFasta.py To run the python script, you can: 
+
+*Simple double click it, which should run it with Python 
+*Or use the command prompt 
+**Start the command prompt 
+**CD to the folder with the .PY file 
+**Run it using "python ConvertFasta.py"
+
+Note that if a conversion error occurs, then this code will still translate the DNA sequence, but it will include a Translation Warning in the protein description line. 
+<pre>from Bio import SeqIO
+from Bio.Alphabet import IUPAC
+from Bio.Seq import Seq
+from Bio.Seq import translate
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_converted.fasta"
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+codonTableID = 1
+
+# Could use this to load all records into memory
+# records = list(SeqIO.parse(src_filename, "fasta"))
+
+i = 0
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna)&nbsp;:
+    i = i + 1
+
+    if i&nbsp;% 100 == 0&nbsp;:
+        print "Entry&nbsp;%d:&nbsp;%s"&nbsp;% (i, seq_record.name)
+    
+    # Use this to see help on the translate method:
+    # help (records[0].seq.translate)
+    # You could specify the translation table like this:
+    # seq_record.seq.translate(table="Bacterial")
+    # Note that using cds="true" instructs the code to verify that each sequence is a true CDS
+   
+    try:
+        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
+           seq_record.name,
+           seq_record.description,
+           seq_record.seq.translate(cds="false", to_stop="false", table=codonTableID)))
+    except Exception as inst:
+        print "Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0])
+        output_handle.write("&gt;%s&nbsp;%s (translation warning:&nbsp;%s)\n%s\n"&nbsp;% (
+           seq_record.name,
+           seq_record.description,
+           inst.args[0],
+           translate(seq_record.seq, codonTableID)))
+        pass
+
+output_handle.close()
+input_handle.close()
+</pre> 
+For more info on using SeqIO, see: 
+
+*Biopython tutorial and cookbook 
+**http://www.biopython.org/DIST/docs/tutorial/Tutorial.html 
+*BioPython wiki 
+**http://www.biopython.org/wiki/SeqIO
+
+== Converting Amino Acid letters to Uppercase  ==
+
+You can use the following to change lowercase amino-acid symbols in a file to uppercase 
+<pre>from Bio import SeqIO
+from Bio.Alphabet import IUPAC
+from Bio.Seq import Seq
+from Bio.Seq import translate
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_Uppercase.fasta"
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+i = 0
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna)&nbsp;:
+    i = i + 1
+    if i&nbsp;% 100 == 0&nbsp;:
+        print "Entry&nbsp;%d:&nbsp;%s"&nbsp;% (i, seq_record.name)
+   
+    try:
+        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
+           seq_record.name,
+           seq_record.description,
+           seq_record.seq.upper()))
+    except Exception as inst:
+        print "Error changing case for&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0])
+        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
+           seq_record.name,
+           seq_record.description,
+           seq_record.seq))
+        pass
+
+output_handle.close()
+input_handle.close()
+
+</pre> 
+
+[[Category:Tutorials]]

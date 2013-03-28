@@ -1,0 +1,7 @@
+syntax: glob
+*.exe
+*.fasta
+*.gbk
+Conversion_Log_and_Errors.txt
+*.zip
+NC_004349*.*
