@@ -11,17 +11,17 @@ from Bio.SeqRecord import SeqRecord
 
 src_filename = "SourceFile.fasta"
 faa_filename = "SourceFile_converted.fasta"
-translate_direction = "both"
-minimum_peptide_length = 30
+translate_direction = "forward"
+minimum_peptide_length = 10
 
-src_filename = "BP_Sediment_Genomes_Jansson.fasta"
-faa_filename = "BP_Sediment_Genomes_Jansson_stop-to-stop_6frames.fasta"
+src_filename = "PTLD35.fasta"
+faa_filename = "PTLD35_converted_stop-to-stop_fwd.fasta"
 
 input_handle  = open(src_filename, "r")
 output_handle = open(faa_filename, "w")
 
-#codonTableID = 1      # Use for eukaryotes
-codonTableID = 11     # Use for bacteria
+codonTableID = 1      # Use for eukaryotes
+#codonTableID = 11     # Use for bacteria
 
 
 def translate_and_write_DNA_frames(seq, directionsToConsider="forward", tranlationTable=1):

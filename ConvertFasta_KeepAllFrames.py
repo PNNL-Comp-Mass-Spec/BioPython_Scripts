@@ -12,6 +12,7 @@ from Bio.SeqRecord import SeqRecord
 src_filename = "SourceFile.fasta"
 faa_filename = "SourceFile_converted.fasta"
 translate_direction = "both"
+minimum_peptide_length = 10
 
 src_filename = "BP_Sediment_Genomes_Jansson.fasta"
 faa_filename = "BP_Sediment_Genomes_Jansson_converted_KeepAllFrames.fasta"
@@ -49,11 +50,12 @@ def translate_and_write_DNA_frames(seq, directionsToConsider="forward", tranlati
         i = i + 1
         currentProtein = Seq(currentFrame, alphabet=ProteinAlphabet)
 
-        currentProteinRecord = SeqRecord(currentProtein, seq_record.name)
-        currentProteinRecord.id = currentProteinRecord.id + "." + str(i)
-        currentProteinRecord.description = seq_record.description + "; frame " + str(i)
-
-        SeqIO.write(currentProteinRecord, output_handle, "fasta")
+        if len(currentProtein) >= minimum_peptide_length:
+            currentProteinRecord = SeqRecord(currentProtein, seq_record.name)
+            currentProteinRecord.id = currentProteinRecord.id + "." + str(i)
+            currentProteinRecord.description = seq_record.description + "; frame " + str(i)
+    
+            SeqIO.write(currentProteinRecord, output_handle, "fasta")
         
 
     return
