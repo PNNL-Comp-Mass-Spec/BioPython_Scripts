@@ -2,15 +2,11 @@ This page describes how to use BioPython to convert a GenBank .GBK file or a FAS
 
 == Install Python and BioPython  ==
 
-*Download and install Python 2.7 
-**http://www.python.org/ (choose the Windows X86-64 MSI Installer) 
-*Download and install Numpy 1.6 
-**http://sourceforge.net/projects/numpy/files/NumPy/1.6.0/ 
-***Choose numpy-1.6.0-win32-superpack-python2.7.exe 
-**(official site is http://numpy.scipy.org/ ) 
+*Download and install Python 3.x
+**https://www.python.org/downloads/ (e.g. Python 3.4.1)
 *Download and install Biopython 
-**http://biopython.org/wiki/Download 
-***Choose biopython-1.57.win32-py2.7.exe for Python 2.7
+**http://biopython.org/wiki/Download
+***Choose biopython-1.64.win32-py3.4.exe for Python 3.4
 
 == Obtain the .GBK file or FASTA file  ==
 
@@ -53,7 +49,7 @@ The following are useful sources for obtaining sequence files
 
 To convert a .GBK file to protein amino-acid .Fasta, enter the following into a text editor and save as ConvertFasta.py To run the python script, you can: 
 
-*Simple double click it, which should run it with Python 
+*Simply double click it, which should run it with Python 
 *Or use the command prompt 
 **Start the command prompt 
 **CD to the folder with the .PY file 
@@ -66,12 +62,12 @@ output_handle = open(faa_filename, "w")
 
 i = 0
 for seq_record in SeqIO.parse(input_handle, "genbank")&nbsp;:
-    print "Dealing with GenBank record&nbsp;%s"&nbsp;% seq_record.id
+    print("Dealing with GenBank record&nbsp;%s"&nbsp;% seq_record.id)
     for seq_feature in seq_record.features&nbsp;:
         if seq_feature.type=="CDS"&nbsp;:
             i = i + 1
             if i&nbsp;% 100 == 0&nbsp;:
-                print "CDS entry&nbsp;%d:&nbsp;%s from&nbsp;%s"&nbsp;% (i, seq_feature.qualifiers['locus_tag'][0], seq_record.name)
+                print("CDS entry&nbsp;%d:&nbsp;%s from&nbsp;%s"&nbsp;% (i, seq_feature.qualifiers['locus_tag'][0], seq_record.name))
 
             assert len(seq_feature.qualifiers['translation'])==1
             output_handle.write("&gt;%s&nbsp;%s [%s]\n%s\n"&nbsp;% (
@@ -81,7 +77,20 @@ for seq_record in SeqIO.parse(input_handle, "genbank")&nbsp;:
                    seq_feature.qualifiers['translation'][0]))
 
 output_handle.close()
-input_handle.close()</pre> 
+input_handle.close()</pre>
+
+== Converting a Genbank .GBK file (Command line version) ==
+
+An extended version of the above script is available for converting a .GBK file to a protein amino-acid .Fasta file.  Given the length of the file, it is available on its own wiki page:
+* [[ConvertGBK.py]]
+
+This script will use the Protein_ID for the protein name, but will also include the locus_tag and db_xref in the protein description (after the organism name).  An example output is:
+<pre>>NP_214518.1 hypothetical protein [Mycobacterium tuberculosis H37Rv]; Rv0004; gi|15607146
+MTGSVDRPDQNRGERSMKSPGLDLVRRTLDEARAAARARGQDAGRGRVASVASGRVAGRR
+RSWSGPGPDIRDPQPLGKAARELAKKRGWSVRVAEGMVLGQWSAVVGHQIAEHARPTALN
+DGVLSVIAESTAWATQLRIMQAQLLAKIAAAVGNDVVRSLKITGPAAPSWRKGPRHIAGR
+GPRDTYG</pre>
+
 == Converting a DNA-based .Fasta file  ==
 
 To convert a DNA-based .fasta file to protein amino-acid .Fasta, enter the following into a text editor and save as ConvertFasta.py To run the python script, you can: 
@@ -97,6 +106,7 @@ Note that if a conversion error occurs, then this code will still translate the 
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
 
 src_filename = "SourceFile.fasta"
 faa_filename = "SourceFile_converted.fasta"
@@ -113,7 +123,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
     i = i + 1
 
     if i&nbsp;% 100 == 0&nbsp;:
-        print "Entry&nbsp;%d:&nbsp;%s"&nbsp;% (i, seq_record.name)
+        print("Entry&nbsp;%d:&nbsp;%s"&nbsp;% (i, seq_record.name))
     
     # Use this to see help on the translate method:
     # help (records[0].seq.translate)
@@ -122,17 +132,24 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
     # Note that using cds="true" instructs the code to verify that each sequence is a true CDS
    
     try:
-        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
-           seq_record.name,
-           seq_record.description,
-           seq_record.seq.translate(cds="false", to_stop="false", table=codonTableID)))
+        proteinRecord = SeqRecord(seq_record.seq.translate(cds="false", to_stop="false", table=codonTableID), seq_record.name)
+        proteinRecord.description = seq_record.description
+        
+        SeqIO.write(proteinRecord, output_handle, "fasta")
+                
+        #output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
+        #   seq_record.name,
+        #   seq_record.description,
+        #   seq_record.seq.translate(cds="false", to_stop="false", table=codonTableID)))
+           
     except Exception as inst:
-        print "Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0])
-        output_handle.write("&gt;%s&nbsp;%s (translation warning:&nbsp;%s)\n%s\n"&nbsp;% (
-           seq_record.name,
-           seq_record.description,
-           inst.args[0],
-           translate(seq_record.seq, codonTableID)))
+        print("Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0]))
+
+        proteinRecord = SeqRecord(translate(seq_record.seq, codonTableID), seq_record.name)
+        proteinRecord.description = seq_record.description + " (translation warning: " + inst.args[0] + ")"
+        
+        SeqIO.write(proteinRecord, output_handle, "fasta")
+        
         pass
 
 output_handle.close()
@@ -145,6 +162,315 @@ For more info on using SeqIO, see:
 *BioPython wiki 
 **http://www.biopython.org/wiki/SeqIO
 
+== Finding the best frame to translate  ==
+
+The above code can be extended to find the "best" frame to translate in a DNA-based .fasta file. Two options for "best" are: 
+
+*The frame with the fewest stop codons 
+*The longest series of amino acids that starts with '''M''' and has no stop codons
+
+<br>
+=== Fewest stop codons  ===
+ 
+<pre>#####
+## This script will find the frame with the fewest stop codons
+#####
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC, ProteinAlphabet
+from Bio.Seq import Seq
+from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_converted.fasta"
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+codonTableID = 1
+
+def find_largest_polypeptide_in_DNA(seq, directionsToConsider="forward", tranlationTable=1):
+    """
+    directionToConsider:
+        forward - normal DNA direction
+        reverse - reverse complement
+        both - both of the abover
+    """
+    allPossibilities = []
+    if directionsToConsider in ("forward","both"):
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq[frame:].translate(tranlationTable))
+            framePossibilities = [i[i.find("M"):] for i in trans.split("*") if "M" in i]
+            allPossibilities += framePossibilities
+            
+    if directionsToConsider in ("reverse","both"):            
+        # consider reverse complement DNA sequence as well
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq.reverse_complement()[frame:].translate(tranlationTable))
+            framePossibilities = [i[i.find("M"):] for i in trans.split("*") if "M" in i]
+            allPossibilities += framePossibilities
+
+    # Find the length of each possible translated ORF
+    allPossibilitiesLengths = [len(i) for i in allPossibilities]
+
+    if len(allPossibilitiesLengths) == 0:
+        raise Exception("no candidate ORFs")
+
+    # Select the longest translated ORF
+    proteinAsString = allPossibilities[allPossibilitiesLengths.index(max(allPossibilitiesLengths))]
+
+    return Seq(proteinAsString, alphabet=ProteinAlphabet)
+
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna):
+    try:
+        largestProteinSeq = find_largest_polypeptide_in_DNA(seq_record.seq,"forward", codonTableID)
+        largestProteinRecord = SeqRecord(largestProteinSeq, seq_record.name)
+        largestProteinRecord.description = seq_record.description
+
+        SeqIO.write(largestProteinRecord, output_handle, "fasta")
+
+    except Exception as inst:
+        print("Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0]))
+
+input_handle.close()
+output_handle.close()
+</pre> 
+<br> 
+
+=== Longest series that starts with M  ===
+
+<pre>#####
+## This script will find the longest series of amino acids that starts with "M" and has no stop codons 
+#####
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC, ProteinAlphabet
+from Bio.Seq import Seq
+from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_converted.fasta"
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+codonTableID = 1
+
+def find_best_frame_in_DNA(seq, directionsToConsider="forward", tranlationTable=1):
+    """
+    directionToConsider:
+        forward - normal DNA direction
+        reverse - reverse complement
+        both - both of the abover
+    """
+    allPossibilities = []
+    if directionsToConsider in ("forward","both"):
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq[frame:].translate(tranlationTable))
+            allPossibilities.append(trans)
+                        
+    if directionsToConsider in ("reverse","both"):            
+        # consider reverse complement DNA sequence as well
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq.reverse_complement()[frame:].translate(tranlationTable))
+            allPossibilities.append(trans)
+
+    # Count the number of stop codons in each frame
+    stopCodonCount = [i.count("*") for i in allPossibilities]
+
+    # Select the frame with the fewest stop codons
+    bestFrame = allPossibilities[stopCodonCount.index(min(stopCodonCount))]
+    
+    return Seq(bestFrame, alphabet=ProteinAlphabet)
+
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna):
+    try:
+        bestFrame = find_best_frame_in_DNA(seq_record.seq,"forward", codonTableID)
+        bestFrameRecord = SeqRecord(bestFrame, seq_record.name)
+        bestFrameRecord.description = seq_record.description
+
+        SeqIO.write(bestFrameRecord, output_handle, "fasta")
+
+    except Exception as inst:
+        print("Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0]))
+
+input_handle.close()
+output_handle.close()
+</pre> 
+<br>
+
+== Translating all 3 or all 6 frames  ==
+
+Another option is to translate all three forward reading frames, or even all six frames. Use the following code to do this: 
+
+*For three frames, set translate_direction to "forward" or "reverse" 
+*For six frames, set translate_direction to "both"
+
+<br> 
+<pre>#####
+## This script will translate all three or all six frames
+## For three frames, set translate_direction to "forward" or "reverse"
+## For six frames,   set translate_direction to "both"
+#####
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC, ProteinAlphabet
+from Bio.Seq import Seq
+from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_converted.fasta"
+translate_direction = "forward"
+
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+codonTableID = 1
+
+def translate_and_write_DNA_frames(seq, directionsToConsider="forward", tranlationTable=1):
+    """
+    directionToConsider:
+        forward - normal DNA direction
+        reverse - reverse complement
+        both - both of the abover
+    """
+    allPossibilities = []
+    if directionsToConsider in ("forward","both"):
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq[frame:].translate(tranlationTable))
+            allPossibilities.append(trans)
+                        
+    if directionsToConsider in ("reverse","both"):            
+        # consider reverse complement DNA sequence as well
+        # start translation from 1, 2 and 3 nucleotide
+        for frame in range(3):
+            trans = str(seq.reverse_complement()[frame:].translate(tranlationTable))
+            allPossibilities.append(trans)
+
+    i = 0
+    for currentFrame in allPossibilities:
+        i = i + 1
+        currentProtein = Seq(currentFrame, alphabet=ProteinAlphabet)
+
+        currentProteinRecord = SeqRecord(currentProtein, seq_record.name)
+        currentProteinRecord.id = currentProteinRecord.id + "." + str(i)
+        currentProteinRecord.description = seq_record.description + "; frame " + str(i)
+
+        SeqIO.write(currentProteinRecord, output_handle, "fasta")
+        
+
+    return
+    
+
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna):
+    try:
+        translate_and_write_DNA_frames(seq_record.seq, translate_direction, codonTableID)
+    
+    except Exception as inst:
+        print("Error translating&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0]))
+
+input_handle.close()
+output_handle.close()
+</pre> 
+== 6-frame Stop-to-Stop translation  ==
+
+The following performs six frame stop-to-stop translation, writing out proteins that are at least 6 residues long 
+Or use the command prompt 
+Start the command prompt 
+CD to the folder with the .PY file 
+Run it using "python ConvertGBK.py" 
+
+*NOTE: Be sure to set codonTableID to the correct ID
+
+<br> 
+<pre>#####
+## This script will translate all three or all six frames
+## For three frames, set translate_direction to "forward" or "reverse"
+## For six frames,   set translate_direction to "both"
+#####
+from Bio import SeqIO
+from Bio.Alphabet import IUPAC, ProteinAlphabet
+from Bio.Seq import Seq
+from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
+
+src_filename = "SourceFile.fasta"
+faa_filename = "SourceFile_converted.fasta"
+translate_direction = "both"
+minimum_peptide_length = 30
+
+input_handle  = open(src_filename, "r")
+output_handle = open(faa_filename, "w")
+
+codonTableID = 1      # Use for eukaryotes
+#codonTableID = 11     # Use for bacteria
+
+
+def translate_and_write_DNA_frames(seq, directionsToConsider="forward", tranlationTable=1):
+    """
+    directionToConsider:
+        forward - normal DNA direction
+        reverse - reverse complement
+        both - both of the abover
+    """
+    allPossibilities = []
+    allPossibilitiesFrameInfo = []
+    
+    if directionsToConsider in ("forward","both"):
+        # start translation from 1, 2 and 3 nucleotide
+        currentFrameNum = 0
+        for frame in range(3):
+            currentFrameNum = currentFrameNum + 1
+            trans = str(seq[frame:].translate(tranlationTable))
+            currentPeptide = 0
+            for i in trans.split("*"):
+                currentPeptide = currentPeptide + 1
+                allPossibilities.append(i)
+                allPossibilitiesFrameInfo.append("fwd_" + str(currentFrameNum) + "_" + str(currentPeptide))
+                        
+    if directionsToConsider in ("reverse","both"):            
+        # consider reverse complement DNA sequence as well
+        # start translation from 1, 2 and 3 nucleotide
+        currentFrameNum = 0
+        for frame in range(3):
+            currentFrameNum = currentFrameNum + 1
+            trans = str(seq.reverse_complement()[frame:].translate(tranlationTable))
+            currentPeptide = 0
+            for i in trans.split("*"):
+                currentPeptide = currentPeptide + 1
+                allPossibilities.append(i)
+                allPossibilitiesFrameInfo.append("rev_" + str(currentFrameNum) + "_" + str(currentPeptide))
+
+    indexInfo = -1
+    for currentFrame in allPossibilities:
+        indexInfo = indexInfo + 1
+        currentProtein = Seq(currentFrame, alphabet=ProteinAlphabet)
+
+        if len(currentProtein) >= minimum_peptide_length:
+            currentProteinRecord = SeqRecord(currentProtein, seq_record.name)
+            currentProteinRecord.id = currentProteinRecord.id + "_" + allPossibilitiesFrameInfo[indexInfo]
+            currentProteinRecord.description = seq_record.description + "; frame " + allPossibilitiesFrameInfo[indexInfo][4] + " " + allPossibilitiesFrameInfo[indexInfo][0:3]
+    
+            SeqIO.write(currentProteinRecord, output_handle, "fasta")
+        
+
+    return
+    
+
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna):
+    try:
+        translate_and_write_DNA_frames(seq_record.seq, translate_direction, codonTableID)
+    
+    except Exception as inst:
+        print("Error translating %s, %s" % (seq_record.name, inst.args[0]))
+
+input_handle.close()
+output_handle.close()
+</pre>
+
 == Converting Amino Acid letters to Uppercase  ==
 
 You can use the following to change lowercase amino-acid symbols in a file to uppercase 
@@ -152,26 +478,28 @@ You can use the following to change lowercase amino-acid symbols in a file to up
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.Seq import translate
+from Bio.SeqRecord import SeqRecord
 
-src_filename = "SourceFile.fasta"
+src_filename = "SourceFile_Lowercase.fasta"
 faa_filename = "SourceFile_Uppercase.fasta"
 input_handle  = open(src_filename, "r")
 output_handle = open(faa_filename, "w")
 
 i = 0
-for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna)&nbsp;:
+for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna) :
     i = i + 1
-    if i&nbsp;% 100 == 0&nbsp;:
-        print "Entry&nbsp;%d:&nbsp;%s"&nbsp;% (i, seq_record.name)
+    if i % 100 == 0 :
+        print("Entry %d: %s" % (i, seq_record.name))
    
     try:
-        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
-           seq_record.name,
-           seq_record.description,
-           seq_record.seq.upper()))
+        proteinRecord = SeqRecord(seq_record.seq.upper(), seq_record.name)
+        proteinRecord.description = seq_record.description
+        
+        SeqIO.write(proteinRecord, output_handle, "fasta")
+       
     except Exception as inst:
-        print "Error changing case for&nbsp;%s,&nbsp;%s"&nbsp;% (seq_record.name, inst.args[0])
-        output_handle.write("&gt;%s&nbsp;%s\n%s\n"&nbsp;% (
+        print("Error changing case for %s, %s" % (seq_record.name, inst.args[0]))
+        output_handle.write(">%s %s\n%s\n" % (
            seq_record.name,
            seq_record.description,
            seq_record.seq))
@@ -179,7 +507,6 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
 
 output_handle.close()
 input_handle.close()
-
 </pre> 
 
 [[Category:Tutorials]]
