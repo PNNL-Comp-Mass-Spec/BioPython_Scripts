@@ -21,7 +21,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
     i = i + 1
 
     if i % 100 == 0 :
-        print "Entry %d: %s" % (i, seq_record.name)
+        print("Entry %d: %s" % (i, seq_record.name))
     
     # Use this to see help on the translate method:
     # help (records[0].seq.translate)
@@ -41,7 +41,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
         #   seq_record.seq.translate(cds="false", to_stop="false", table=codonTableID)))
            
     except Exception as inst:
-        print "Error translating %s, %s" % (seq_record.name, inst.args[0])
+        print("Error translating %s, %s" % (seq_record.name, inst.args[0]))
 
         proteinRecord = SeqRecord(translate(seq_record.seq, codonTableID), seq_record.name)
         proteinRecord.description = seq_record.description + " (translation warning: " + inst.args[0] + ")"

@@ -80,7 +80,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
         translate_and_write_DNA_frames(seq_record.seq, translate_direction, codonTableID)
     
     except Exception as inst:
-        print "Error translating %s, %s" % (seq_record.name, inst.args[0])
+        print("Error translating %s, %s" % (seq_record.name, inst.args[0]))
 
 input_handle.close()
 output_handle.close()

@@ -3,6 +3,10 @@
 # Modified by Matthew Monroe on 9/19/2012
 # Extended by Matthew Monroe on 6/19/2013 to support command line arguments (based on code from Sam Payne)
 #
+# Requires Python 3.x and BioPython
+#  https://www.python.org/downloads/
+#  http://biopython.org/wiki/Download
+#
 
 UsageInfo="""
 Command line switches:
@@ -40,14 +44,14 @@ class ParserClass:
         
         processedCount = 0
         for seq_record in SeqIO.parse(input_handle, "genbank") :
-        #    print "Dealing with GenBank record %s" % seq_record.id
+        #    print("Dealing with GenBank record %s" % seq_record.id)
             for seq_feature in seq_record.features :
                 if seq_feature.type=="source" :
                     record_organism = seq_feature.qualifiers['organism'][0]
                 if seq_feature.type=="CDS" :
                     processedCount = processedCount + 1
                     if processedCount % 1000 == 0 :
-                        print "CDS entry %d: %s from %s" % (processedCount, seq_feature.qualifiers['locus_tag'][0], seq_record.id)
+                        print("CDS entry %d: %s from %s" % (processedCount, seq_feature.qualifiers['locus_tag'][0], seq_record.id))
         
                     assert len(seq_feature.qualifiers['translation'])==1
         
@@ -73,7 +77,7 @@ class ParserClass:
                     residues = seq_feature.qualifiers['translation'][0]
                     
                     i = 0
-                    chunkSize = 60
+                    chunkSize = 70
                     while (i < len(residues)):
                         output_handle.write("%s\n" % (
                                residues[i:i+chunkSize]))
@@ -90,21 +94,21 @@ class ParserClass:
             OptionsSeen[Option] = 1
             if Option == "-i":
                 if not os.path.exists(Value):
-                    print "\n** Error: Input file not found '%s'\n"%Value
-                    print UsageInfo
+                    print("\n** Error: Input file not found '%s'\n"%Value)
+                    print(UsageInfo)
                     sys.exit(1)
                 self.InputFilePath = Value
             elif Option == "-o":               
                 self.OutputFilePath = Value
            
             else:
-                print "\n** Error: Option %s not recognized\n"%Option
-                print UsageInfo
+                print("\n** Error: Option %s not recognized\n"%Option)
+                print(UsageInfo)
                 sys.exit(1)
 
-        if not OptionsSeen.has_key("-i"):
-            print "\n** Error: Missing required parameter -i\n"
-            print UsageInfo
+        if "-i" not in OptionsSeen:
+            print("\n** Error: Missing required parameter -i\n")
+            print(UsageInfo)
             sys.exit(1)
 
 if __name__ == "__main__":
