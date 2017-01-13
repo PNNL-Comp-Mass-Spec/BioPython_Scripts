@@ -1,0 +1,3 @@
+c:
+cd C:\Users\d3l243\AppData\Local\Programs\Python\Python36-32
+pip install biopython
