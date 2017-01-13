@@ -28,58 +28,80 @@ class ParserClass:
     def __init__ (self):
         #input params
         self.InputFilePath = None
-        self.OutputFilePath = ""
+        self.OutputFilePath = ''
 
     def Main(self):
 
-        if self.OutputFilePath == "" :
-            self.OutputFilePath = self.InputFilePath + ".fasta"
+        if self.OutputFilePath == '' :
+            self.OutputFilePath = self.InputFilePath + '.fasta'
 
         self.ParseGenbank(self.InputFilePath, self.OutputFilePath)
 
     def ParseGenbank(self, gbk_filename, faa_filename):
             
-        input_handle  = open(gbk_filename, "r")
-        output_handle = open(faa_filename, "w")
+        input_handle  = open(gbk_filename, 'r')
+        output_handle = open(faa_filename, 'w')
         
         processedCount = 0
-        for seq_record in SeqIO.parse(input_handle, "genbank") :
-        #    print("Dealing with GenBank record %s" % seq_record.id)
+        for seq_record in SeqIO.parse(input_handle, 'genbank') :
+        #    print('Dealing with GenBank record %s' % seq_record.id)
             for seq_feature in seq_record.features :
-                if seq_feature.type=="source" :
+                if seq_feature.type=='source' :
                     record_organism = seq_feature.qualifiers['organism'][0]
-                if seq_feature.type=="CDS" :
+                if seq_feature.type=='CDS' :
                     processedCount = processedCount + 1
                     if processedCount % 1000 == 0 :
-                        print("CDS entry %d: %s from %s" % (processedCount, seq_feature.qualifiers['locus_tag'][0], seq_record.id))
+                        print ('CDS entry {0}: {1} from {2}'.format(processedCount, seq_feature.qualifiers['locus_tag'][0], seq_record.id))
         
+                    residues = ''
+                    if not 'translation' in seq_feature.qualifiers:
+                        continue
+                        
                     assert len(seq_feature.qualifiers['translation'])==1
-        
+                    residues = seq_feature.qualifiers['translation'][0]
+    
                     # Note: Could use this to write out a standard protein fasta file entry
                     # currentProteinRecord = SeqRecord(Seq(seq_feature.qualifiers['translation'][0], IUPAC.protein),
-                    #        id=seq_feature.qualifiers['locus_tag'][0], name="UnknownGene",
+                    #        id=seq_feature.qualifiers['locus_tag'][0], name='UnknownGene',
                     #        description=seq_feature.qualifiers['product'][0])
-                    # SeqIO.write(currentProteinRecord, output_handle, "fasta")
+                    # SeqIO.write(currentProteinRecord, output_handle, 'fasta')
         
         
                     # Instead, we use this code so that we can include the organism name
                     # Locus_tag is useful for Mycobacterium tuberculosis .gbk files, which have Rv numbers, for example Rv0905
                     # db_xref provides the gi number, for example gi|15608045
                     # Note: could include Locus using seq_record.name
-                    output_handle.write(">%s %s; %s|%s; [%s]\n" % (
+                    
+                    dbXrefName = ''
+                    proteinID = ''
+
+                    if 'db_xref' in seq_feature.qualifiers:
+                        dbXrefName = seq_feature.qualifiers['db_xref'][0].replace('GI:', 'gi|')
+
+                    if 'protein_id' in seq_feature.qualifiers:
+                        proteinID = seq_feature.qualifiers['protein_id'][0]
+
+                    dbXrefNameAndProteinID = dbXrefName
+                    if len(dbXrefName) > 0 and len(proteinID) > 0:
+                        dbXrefNameAndProteinID += '|'
+                    
+                    if len(proteinID) > 0:
+                        dbXrefNameAndProteinID += proteinID
+                    
+                    if len(dbXrefNameAndProteinID) > 0:
+                        dbXrefNameAndProteinID += '; '
+                        
+                    output_handle.write('>%s %s; %s[%s]\n' % (
                         seq_feature.qualifiers['locus_tag'][0],
                         seq_feature.qualifiers['product'][0],
-                        seq_feature.qualifiers['db_xref'][0].replace("GI:", "gi|"),
-                        seq_feature.qualifiers['protein_id'][0],
+                        dbXrefNameAndProteinID,
                         record_organism
                         ))
-        
-                    residues = seq_feature.qualifiers['translation'][0]
                     
                     i = 0
                     chunkSize = 70
                     while (i < len(residues)):
-                        output_handle.write("%s\n" % (
+                        output_handle.write('%s\n' % (
                                residues[i:i+chunkSize]))
                         i += chunkSize
         
@@ -88,30 +110,30 @@ class ParserClass:
 
 
     def ParseCommandLine(self,Arguments):
-        (Options, Args) = getopt.getopt(Arguments, "i:o:")
+        (Options, Args) = getopt.getopt(Arguments, 'i:o:')
         OptionsSeen = {}
         for (Option, Value) in Options:
             OptionsSeen[Option] = 1
-            if Option == "-i":
+            if Option == '-i':
                 if not os.path.exists(Value):
-                    print("\n** Error: Input file not found '%s'\n"%Value)
+                    print ("\n** Error: Input file not found '{0}'\n".format(Value))
                     print(UsageInfo)
                     sys.exit(1)
                 self.InputFilePath = Value
-            elif Option == "-o":               
+            elif Option == '-o':               
                 self.OutputFilePath = Value
            
             else:
-                print("\n** Error: Option %s not recognized\n"%Option)
+                print ('\n** Error: Option {0} not recognized\n'.format(Option))
                 print(UsageInfo)
                 sys.exit(1)
 
-        if "-i" not in OptionsSeen:
-            print("\n** Error: Missing required parameter -i\n")
+        if '-i' not in OptionsSeen:
+            print('\n** Error: Missing required parameter -i\n')
             print(UsageInfo)
             sys.exit(1)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     DoStuff = ParserClass()
     DoStuff.ParseCommandLine(sys.argv[1:])
     DoStuff.Main()

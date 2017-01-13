@@ -59,7 +59,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
         SeqIO.write(largestProteinRecord, output_handle, "fasta")
 
     except Exception as inst:
-        print("Error translating %s, %s" % (seq_record.name, inst.args[0]))
+        print("Error translating {0}, {1}".format(seq_record.name, inst.args[0]))
 
 input_handle.close()
 output_handle.close()

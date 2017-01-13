@@ -13,7 +13,7 @@ i = 0
 for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dna) :
     i = i + 1
     if i % 100 == 0 :
-        print("Entry %d: %s" % (i, seq_record.name))
+        print("Entry {0}: {1}".format(i, seq_record.name))
    
     try:
         proteinRecord = SeqRecord(seq_record.seq.upper(), seq_record.name)
@@ -22,7 +22,7 @@ for seq_record in SeqIO.parse(input_handle, "fasta", alphabet=IUPAC.ambiguous_dn
         SeqIO.write(proteinRecord, output_handle, "fasta")
        
     except Exception as inst:
-        print("Error changing case for %s, %s" % (seq_record.name, inst.args[0]))
+        print("Error changing case for {0}, {1}".format(seq_record.name, inst.args[0]))
         output_handle.write(">%s %s\n%s\n" % (
            seq_record.name,
            seq_record.description,
